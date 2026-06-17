@@ -1,0 +1,4 @@
+edge-tts
+faster-whisper
+pyautogui
+ffmpeg-python
