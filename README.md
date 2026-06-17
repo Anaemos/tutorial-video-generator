@@ -411,7 +411,7 @@ Nothing in the module files changes.
 ## Setup
 
 Requirements:
-- Python 3.10+
+- Python 3.11 (Recommended for library compatibility, especially faster-whisper)
 - ffmpeg installed system-wide (`winget install ffmpeg` on Windows)
 - VS Code installed
 
