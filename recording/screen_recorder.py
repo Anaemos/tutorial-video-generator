@@ -1,5 +1,15 @@
+import subprocess
+
 def record_screen(output_path: str, duration: int) -> str:
-    # records screen for given duration using ffmpeg
-    # input: output file path, duration in seconds
-    # output: path to screen_recording.mp4
-    pass
+    """Records the screen for given duration and saves as MP4."""
+    subprocess.run([
+        "ffmpeg",
+        "-y",                  # overwrite if file exists
+        "-f", "gdigrab",       # Windows screen capture
+        "-framerate", "30",
+        "-i", "desktop",
+        "-t", str(duration),
+        "-vcodec", "libx264",
+        output_path
+    ])
+    return output_path

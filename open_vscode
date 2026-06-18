@@ -1,18 +1,11 @@
 import subprocess
 import pyautogui
 import time
-import os
 
 def open_vscode(filepath: str) -> None:
     """Opens VS Code with the given file."""
     code_path = r"C:\Users\patel\AppData\Local\Programs\Microsoft VS Code\Code.exe"
-    
-    # Check if VS Code exists at that path
-    if not os.path.exists(code_path):
-        raise FileNotFoundError(f"VS Code not found at: {code_path}")
-    
-    abs_filepath = os.path.abspath(filepath)
-    subprocess.Popen([code_path, abs_filepath])
+    subprocess.Popen([code_path, filepath])
     time.sleep(4)  # wait for VS Code to fully load
 
 def type_code(code: str, delay_per_char: float = 0.05) -> None:
