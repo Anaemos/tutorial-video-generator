@@ -15,8 +15,8 @@ def test_recording():
     print("Typing code...")
     type_code("print('hello world')", delay_per_char=0.05)
 
-    # Check output file exists
     assert os.path.exists("output/recordings/test_screen.mp4"), "Recording not found!"
     print("✅ Test passed! File saved at output/recordings/test_screen.mp4")
 
-test_recording()
+if __name__ == "__main__":
+    test_recording()
