@@ -17,3 +17,4 @@ narration: "Finally let's run the program and see the output."
 code: |
   print(add(10, 5))
   print(subtract(10, 5))
+print('hello world')print('hello world')
