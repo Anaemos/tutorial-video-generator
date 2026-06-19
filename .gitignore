@@ -2,6 +2,8 @@ __pycache__/
 *.pyc
 *.pyo
 .env
+.venv/
+.venv312/
 venv/
 *.egg-info/
 
@@ -9,6 +11,7 @@ output/audio/*
 output/subtitles/*
 output/recordings/*
 output/final/*
+output/*.json
 !output/audio/.gitkeep
 !output/subtitles/.gitkeep
 !output/recordings/.gitkeep

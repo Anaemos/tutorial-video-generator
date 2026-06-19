@@ -1,8 +1,9 @@
-from faster_whisper import WhisperModel
 import json
 import re
 
 def generate_subtitles(audio_path: str, output_path: str) -> str:
+    from faster_whisper import WhisperModel
+
     model = WhisperModel("base", device="cpu")
     segments, _ = model.transcribe(audio_path, word_timestamps=True)
     
