@@ -1,17 +1,10 @@
-import subprocess
-import pyautogui
-import time
+"""Thin re-export wrapper.
 
-def open_vscode(filepath: str) -> None:
-    """Opens VS Code with the given file."""
-    code_path = r"C:\Users\patel\AppData\Local\Programs\Microsoft VS Code\Code.exe"
-    subprocess.Popen([code_path, filepath])
-    time.sleep(4)  # wait for VS Code to fully load
+The real implementation lives in recording/vscode_automation.py. This file
+exists only so callers can `import open_vscode` from the repo root without
+maintaining two divergent copies of the same logic.
+"""
 
-def type_code(code: str, delay_per_char: float = 0.05) -> None:
-    """Types code into the active VS Code window."""
-    time.sleep(1)
-    pyautogui.click()
-    time.sleep(0.5)
-    for char in code:
-        pyautogui.typewrite(char, interval=delay_per_char)
+from recording.vscode_automation import open_vscode, type_code
+
+__all__ = ["open_vscode", "type_code"]
