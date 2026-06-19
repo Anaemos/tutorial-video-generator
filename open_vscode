@@ -1,0 +1,10 @@
+"""Thin re-export wrapper.
+
+The real implementation lives in recording/vscode_automation.py. This file
+exists only so callers can `import open_vscode` from the repo root without
+maintaining two divergent copies of the same logic.
+"""
+
+from recording.vscode_automation import open_vscode, type_code
+
+__all__ = ["open_vscode", "type_code"]
