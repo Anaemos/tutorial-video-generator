@@ -5,10 +5,18 @@ depending on any other module's output (Rule 3). Run with: pytest tests/
 """
 
 import os
+import shutil
 import subprocess
+
+import pytest
 
 from assembly.merge_video import merge_audio_video
 from assembly.subtitle_overlay import add_subtitles
+
+pytestmark = pytest.mark.skipif(
+    shutil.which("ffmpeg") is None,
+    reason="ffmpeg is required for assembly integration tests",
+)
 
 
 def _make_dummy_video(path: str, duration: int = 3) -> None:
@@ -16,7 +24,7 @@ def _make_dummy_video(path: str, duration: int = 3) -> None:
         ["ffmpeg", "-y", "-f", "lavfi",
          "-i", f"color=c=blue:s=640x480:d={duration}",
          "-pix_fmt", "yuv420p", path],
-        check=True, capture_output=True,
+        check=True, capture_output=True, timeout=30,
     )
 
 
@@ -24,7 +32,7 @@ def _make_dummy_audio(path: str, duration: int = 3) -> None:
     subprocess.run(
         ["ffmpeg", "-y", "-f", "lavfi",
          "-i", f"sine=frequency=440:duration={duration}", path],
-        check=True, capture_output=True,
+        check=True, capture_output=True, timeout=30,
     )
 
 

@@ -58,10 +58,29 @@ def escape_subtitle_path(path: str) -> str:
     return p
 
 
-def run_ffmpeg(cmd: list) -> None:
-    """Run an ffmpeg command and surface its stderr on failure."""
+def run_ffmpeg(cmd: list[str], timeout: int | None = None) -> None:
+    """Run an ffmpeg command and surface its stderr on failure.
+
+    timeout is in seconds; None means no limit. Note the subtitle-burn step
+    re-encodes the whole video, so don't set a tight timeout there - long
+    videos take minutes. The merge step is a fast copy and can use a short one.
+    """
     try:
-        subprocess.run(cmd, check=True, capture_output=True, text=True)
+        subprocess.run(
+            cmd,
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except FileNotFoundError as e:
+        raise RuntimeError("ffmpeg binary not found on PATH") from e
+    except subprocess.TimeoutExpired as e:
+        raise RuntimeError(
+            "ffmpeg timed out:\n"
+            f"command: {' '.join(cmd)}\n"
+            f"timeout: {timeout}s"
+        ) from e
     except subprocess.CalledProcessError as e:
         raise RuntimeError(
             "ffmpeg failed:\n"
