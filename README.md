@@ -206,26 +206,44 @@ Makes the folder a Python package.
 
 ### assembly/
 
+### assembly/
+
 **Who owns this:** Person 4
+
+**Status:** Implemented and tested. `pytest tests/test_assembly.py` passes — both
+functions produce valid output from dummy inputs, with no dependency on the other modules.
 
 **`merge_video.py`**
 Contains `merge_audio_video(video_path: str, audio_path: str, output_path: str) -> str`.
-Uses `ffmpeg` to replace the screen recording's audio track with the TTS narration.
-The screen recording has no meaningful audio so this is a straight replacement, not a mix.
-Returns path to the merged video.
+Uses `ffmpeg` to replace the screen recording's audio track with the TTS narration
+(`-map 0:v:0 -map 1:a:0`) - a straight replacement, not a mix. The video stream is copied
+without re-encoding (`-c:v copy`) so this step is fast; the narration is encoded to AAC.
+`-shortest` ends the output at the shorter of the two streams. Returns the merged video path.
 
 **`subtitle_overlay.py`**
 Contains `add_subtitles(video_path: str, srt_path: str, output_path: str) -> str`.
-Uses `ffmpeg` to burn the SRT captions into the merged video as visible text.
-Returns path to the final video. This is the last step in the pipeline.
+Uses ffmpeg's `subtitles` filter to burn the SRT captions into the video as visible text.
+This re-encodes the video (required to paint text into the frames); audio is copied through
+untouched. Returns the final video path. This is the last step in the pipeline.
 
 **`utils.py`**
-Placeholder for shared ffmpeg helpers - for example checking that ffmpeg is installed,
-getting video duration, or validating that input files exist before processing.
-Empty until Person 4 needs it.
+Shared helpers used internally by the two functions above:
+- `check_ffmpeg()` - verify ffmpeg is callable
+- `validate_file_exists(path)` - raise a clear error if an input file is missing
+- `get_video_duration(path)` - media duration in seconds via ffprobe
+- `escape_subtitle_path(path)` - make a path safe for ffmpeg's `subtitles=` filter
+  (escapes Windows drive colons/backslashes; no-op on Linux/macOS)
+- `run_ffmpeg(cmd)` - run an ffmpeg command and surface stderr on failure
 
 **`__init__.py`**
 Makes the folder a Python package.
+
+**Integration note:** `merge_audio_video` uses `-shortest`, so if the narration is longer
+than the screen recording, the end of the narration gets clipped. Recording duration should
+be sized to the audio length upstream (in `record_screen`'s `duration`).
+
+**Dependency:** `pytest` (for the test) - added to `requirements.txt`. ffmpeg is system-wide,
+not a pip package.
 
 ---
 
