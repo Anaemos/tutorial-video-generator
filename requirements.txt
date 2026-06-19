@@ -1,7 +1,6 @@
 edge-tts
 faster-whisper
 pydub
-audioop-lts
 pyautogui
 ffmpeg-python
 pytest

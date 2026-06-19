@@ -27,8 +27,8 @@ def record_screen(output_path: str, duration: int | None = None) -> subprocess.P
     process = subprocess.Popen(
         cmd,
         stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stdout=subprocess.DEVNULL,  # PIPE would deadlock on long recordings
+        stderr=subprocess.DEVNULL,
     )
     return process
 
