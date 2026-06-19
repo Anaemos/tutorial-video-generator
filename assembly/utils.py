@@ -45,17 +45,19 @@ def get_video_duration(path: str) -> float:
 
 
 def escape_subtitle_path(path: str) -> str:
-    """Make a path safe for ffmpeg's `subtitles=` filter.
+    """Make a path safe for ffmpeg's `subtitles=` filter on Windows.
 
-    The subtitles filter parses its argument, so Windows drive colons and
-    backslashes break it. Convert to forward slashes and escape the colon.
-    On Linux/macOS this is a harmless no-op.
-        C:\\Users\\x\\subs.srt  ->  C\\:/Users/x/subs.srt
+    Always use the absolute path — relative paths break if ffmpeg's
+    working directory differs from Python's. The drive-letter colon must
+    be escaped (\\:) AND the whole path wrapped in single quotes, or
+    ffmpeg's filtergraph parser reads the unescaped colon as the boundary
+    between the filter value and the next option (the 'original_size'
+    parse error). Single-backslash escaping alone is not enough here.
     """
     p = os.path.abspath(path)
     p = p.replace("\\", "/")
     p = p.replace(":", "\\:")
-    return p
+    return f"'{p}'"
 
 
 def run_ffmpeg(cmd: list[str], timeout: int | None = None) -> None:
