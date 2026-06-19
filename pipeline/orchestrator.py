@@ -4,7 +4,7 @@ from parser.parser import parse_script
 from audio.tts import generate_tts
 from audio.subtitles import generate_subtitles
 from recording.vscode_automation import open_vscode, type_code
-from recording.screen_recorder import record_screen
+from recording.screen_recorder import record_screen, stop_recording
 from assembly.merge_video import merge_audio_video
 from assembly.subtitle_overlay import add_subtitles
 
@@ -24,7 +24,13 @@ def run_pipeline(script_path: str) -> str:
 
     generate_tts(narration_text, audio_out)
     generate_subtitles(audio_out, srt_out)
-    record_screen(recording_out, duration=300)
+    recording = record_screen(recording_out, duration=None)
+    try:
+        open_vscode(code_path)
+        for step in script.steps:
+            type_code(step.code + "\n")
+    finally:
+        stop_recording(recording)
     merge_audio_video(recording_out, audio_out, merged_out)
     add_subtitles(merged_out, srt_out, final_out)
 
