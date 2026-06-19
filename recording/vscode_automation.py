@@ -4,6 +4,7 @@ import os
 import shutil
 
 import pyautogui
+import pyperclip
 
 pyautogui.FAILSAFE = True
 
@@ -59,6 +60,25 @@ def open_vscode(filepath: str) -> None:
 
 
 def type_code(code: str, delay_per_char: float = 0.05) -> None:
-    """Type code in active editor."""
+    """Paste code into the active editor via clipboard.
+
+    Uses ctrl+v instead of character-by-character typing so that
+    indentation is preserved exactly and VS Code auto-indent doesn't interfere.
+    Always moves to the end of the file first so each call appends below
+    the previous step instead of pasting at an unpredictable cursor position.
+    delay_per_char is kept for API compatibility but unused.
+    """
     _focus_vscode_window()
-    pyautogui.write(code, interval=delay_per_char)
+
+    # move cursor to end of file so this step's code is appended, not
+    # inserted wherever the cursor happened to land after the last paste
+    pyautogui.hotkey("ctrl", "end")
+    time.sleep(0.2)
+
+    pyperclip.copy(code)
+    pyautogui.hotkey("ctrl", "v")
+    time.sleep(0.5)
+
+    # blank line separator before the next step's paste
+    pyautogui.press("enter")
+    time.sleep(0.2)

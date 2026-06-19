@@ -1,37 +1,39 @@
 # Calculator Tutorial
 
 ## Step 1
-narration: "Welcome to this Python calculator tutorial. Today we'll build a fully functional calculator from scratch. We'll cover addition, subtraction, multiplication, division, and even handle errors like dividing by zero. Let's start by creating a new Python file called calculator dot py."
+narration: "Welcome to this Python calculator tutorial. Today we are going to build a fully functional calculator program from scratch using Python. By the end of this video, you will have a complete calculator that supports addition, subtraction, multiplication, and division. We will also handle edge cases like dividing by zero, and we will build an interactive loop so users can type in their own calculations. Let's get started by creating a new Python file called calculator dot py and adding a comment at the top to describe what it does."
 code: |
   # calculator.py
-  # A simple calculator in Python
+  # A simple yet complete calculator built in Python.
+  # Supports: addition, subtraction, multiplication, division.
+  # Includes error handling for division by zero and invalid input.
 
 ## Step 2
-narration: "First, let's implement the addition function. It takes two numbers as parameters and returns their sum. This is the simplest operation, but we'll follow the same pattern for all our functions."
+narration: "Let's implement the addition function first. This function takes two parameters, a and b, and returns their sum using the plus operator. We also add a docstring which is a string right below the function definition that describes what the function does. Docstrings are important for documentation and they show up in editor tooltips when other developers use your function. Even for a simple function like this, it is good practice to include one."
 code: |
   def add(a, b):
       """Return the sum of a and b."""
       return a + b
 
 ## Step 3
-narration: "Next, subtraction. The subtract function takes two parameters: a and b, and returns a minus b. Notice how we're documenting every function with a docstring — this is good Python practice."
+narration: "Next up is the subtraction function. It follows the exact same pattern as addition — two parameters, a docstring, and a single return statement. The only difference is the operator. Notice how consistent the structure is across all our functions. This consistency makes the code easy to read and easy to extend later. If you wanted to add a modulo or power function, you would follow this exact same pattern."
 code: |
   def subtract(a, b):
-      """Return the difference of a and b."""
+      """Return the result of a minus b."""
       return a - b
 
 ## Step 4
-narration: "Now let's add multiplication. The multiply function returns the product of a and b. Python uses the asterisk symbol for multiplication. Again, we keep it clean and simple."
+narration: "Now let's add the multiplication function. In Python, multiplication uses the asterisk symbol, not the letter x. So a times b is written as a asterisk b. Again we follow the same structure: function name, two parameters, docstring, and return statement. Keeping all four arithmetic functions consistent like this is important because it allows us to call them all the same way in our dispatcher function that we will write in a moment."
 code: |
   def multiply(a, b):
       """Return the product of a and b."""
       return a * b
 
 ## Step 5
-narration: "Division needs special care. If someone tries to divide by zero, Python will raise a ZeroDivisionError. We handle that with a try-except block and return None to signal that the operation failed."
+narration: "Division requires more care than the other three operations. If someone passes zero as the second argument, Python will raise a ZeroDivisionError and crash the program. To handle this gracefully, we wrap the division inside a try except block. If the division succeeds, we return the result. If a ZeroDivisionError is raised, we catch it, print a helpful error message, and return None to signal to the caller that the operation could not be completed. This is a much better experience than letting the program crash."
 code: |
   def divide(a, b):
-      """Return the quotient of a and b. Returns None if b is zero."""
+      """Return the quotient of a divided by b. Returns None if b is zero."""
       try:
           return a / b
       except ZeroDivisionError:
@@ -39,10 +41,10 @@ code: |
           return None
 
 ## Step 6
-narration: "Now let's bring everything together with a calculate function. It takes an operator string and two numbers, then calls the right function based on the operator. If the operator isn't recognised, we return None and print a helpful message."
+narration: "Now let's write the calculate function which acts as a dispatcher. It takes three arguments: an operator string like plus, minus, asterisk, or slash, and two numbers a and b. Based on the operator, it calls the correct function. We use a chain of if and elif statements to check which operator was passed. If none of them match, we print an error message and return None. This dispatcher pattern means the rest of our program only needs to call calculate — it never needs to know which specific function to call directly."
 code: |
   def calculate(operator, a, b):
-      """Dispatch to the correct operation based on operator string."""
+      """Call the correct arithmetic function based on the operator string."""
       if operator == "+":
           return add(a, b)
       elif operator == "-":
@@ -56,21 +58,22 @@ code: |
           return None
 
 ## Step 7
-narration: "Let's test each function to make sure they work correctly. We'll call each one and print the result. Run this file and you should see the correct output for all four operations."
+narration: "Before we build the interactive loop, let's write a quick test block to verify all four operations work correctly. We call each function directly and print the results. Add ten plus five should give fifteen. Subtract ten minus five should give five. Multiply ten times five should give fifty. Divide ten by five should give two point zero. And dividing ten by zero should print our error message and return None. Run the file now and confirm all five outputs are correct."
 code: |
-  if __name__ == "__main__":
-      print(add(10, 5))        # 15
-      print(subtract(10, 5))   # 5
-      print(multiply(10, 5))   # 50
-      print(divide(10, 5))     # 2.0
-      print(divide(10, 0))     # Error + None
+  # Quick tests — verify all operations work before building the interactive loop
+  print("Testing calculator functions:")
+  print(f"  add(10, 5)      = {add(10, 5)}")        # 15
+  print(f"  subtract(10, 5) = {subtract(10, 5)}")   # 5
+  print(f"  multiply(10, 5) = {multiply(10, 5)}")   # 50
+  print(f"  divide(10, 5)   = {divide(10, 5)}")      # 2.0
+  print(f"  divide(10, 0)   = {divide(10, 0)}")      # Error + None
 
 ## Step 8
-narration: "Now let's build an interactive loop so a user can type in their own calculations. We use a while True loop that keeps running until the user types quit. We also use a try-except to handle invalid number inputs gracefully."
+narration: "Now let's build the interactive calculator loop. The run calculator function uses a while True loop that keeps running indefinitely until the user types quit. Inside the loop, we read a line of input from the user and split it into three parts: a number, an operator, and another number. If the input doesn't have exactly three parts, we print a format hint and continue to the next iteration. We also wrap the number parsing in a try except block to handle cases where the user types something that isn't a valid number. If everything is valid, we call our calculate function and print the result."
 code: |
   def run_calculator():
-      """Run an interactive calculator session."""
-      print("Python Calculator — type 'quit' to exit")
+      """Run an interactive calculator session in the terminal."""
+      print("Python Calculator — type 'quit' to exit.")
       while True:
           user_input = input("\nEnter calculation (e.g. 10 + 5): ").strip()
           if user_input.lower() == "quit":
@@ -78,30 +81,28 @@ code: |
               break
           parts = user_input.split()
           if len(parts) != 3:
-              print("Format: <number> <operator> <number>")
+              print("Please use the format: <number> <operator> <number>")
               continue
           try:
               a = float(parts[0])
               operator = parts[1]
               b = float(parts[2])
           except ValueError:
-              print("Invalid numbers. Please try again.")
+              print("Invalid numbers entered. Please try again.")
               continue
           result = calculate(operator, a, b)
           if result is not None:
               print(f"Result: {result}")
 
 ## Step 9
-narration: "Let's wire up the entry point. We call run underscore calculator only when the script is run directly, not when it's imported. This is the standard Python idiom using the name equals main guard."
+narration: "Let's wire up the entry point. We add a main guard at the bottom of the file that calls run calculator. The if name equals main pattern ensures that run calculator is only called when you run the file directly from the terminal. If another Python file were to import our calculator module, this block would be skipped — which means the interactive loop would not start unexpectedly. This is standard Python practice and you should use it in every script you write."
 code: |
   if __name__ == "__main__":
       run_calculator()
 
 ## Step 10
-narration: "And that's our complete Python calculator! We covered four arithmetic operations, zero division handling, invalid input handling, and an interactive user loop. The full source is clean, well-documented, and easy to extend. Try adding a power operator or a modulo operator as a next step. Thanks for watching!"
+narration: "And that is our complete Python calculator. We have a clean, well-documented program with four arithmetic operations, proper error handling for division by zero and invalid input, and a friendly interactive loop. Try running it now: type python calculator dot py in your terminal, then test it with something like ten plus five, twenty divided by four, and ten divided by zero to see the friendly error message instead of a crash. When you are done, type quit to exit cleanly. That is a fully functional, well-structured Python calculator built from scratch. Thanks for watching, and try extending it with a power operator or a square root function as a next step!"
 code: |
-  # Full calculator.py summary:
-  # add, subtract, multiply, divide  — core operations
-  # calculate(operator, a, b)        — dispatcher
-  # run_calculator()                 — interactive loop
-  # All functions are independently testable.
+  # calculator.py is now complete.
+  # Run it with: python calculator.py
+  # Try: 10 + 5, 20 / 4, 10 / 0, quit
