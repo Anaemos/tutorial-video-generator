@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Explainer Animation</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&display=swap"
+    rel="stylesheet"
+  />
+  <script src="https://unpkg.com/roughjs@4.6.6/bundled/rough.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #ffffff; overflow: hidden;
+           width: 1280px; height: 720px; }
+    #stage { display: block; transform-origin: top left; }
+    text, tspan { font-family: 'Caveat', cursive; }
+  </style>
+</head>
+<body>
+<svg id="stage"></svg>
+
+<script>
+// ─── Config ──────────────────────────────────────────────────────────────────
+const PADDING        = 60;    // px around bounding box
+const MS_PER_SHAPE   = 450;   // draw duration per rect/arrow (ms)
+const MS_PER_TEXT    = 180;   // fade duration per text label (ms)
+const STEP_GAP       = 80;    // gap between element appearances (ms)
+
+// ─── Pause beats (from ?pauses=ms1,ms2,... URL param) ────────────────────────
+// Each value is a hold duration in milliseconds inserted at evenly-spaced
+// element indices during animation. Pass nothing → default behaviour.
+function parsePauseBeats(n) {
+  const raw = new URLSearchParams(window.location.search).get('pauses');
+  if (!raw) return [];
+  const durations = raw.split(',').map(Number).filter(v => v > 0);
+  if (!durations.length || n === 0) return [];
+  // Distribute pause points evenly across element indices
+  return durations.map((dur, i) => ({
+    afterIndex: Math.round((i + 1) * n / (durations.length + 1)),
+    holdMs: dur,
+  }));
+}
+
+// ─── Main ────────────────────────────────────────────────────────────────────
+(async () => {
+  const scene = await fetch('/scene.excalidraw').then(r => r.json());
+  const elements = (scene.elements || []).filter(e => !e.isDeleted);
+
+  const { minX, minY, width, height } = boundingBox(elements, PADDING);
+  const svg = document.getElementById('stage');
+  svg.setAttribute('width',  width);
+  svg.setAttribute('height', height);
+  svg.setAttribute('viewBox', `${minX - PADDING} ${minY - PADDING} ${width} ${height}`);
+
+  // ── Auto-scale to fit the 1280×720 Playwright viewport ──────────────────
+  // Without this, wide scenes (4+ nodes in a row) overflow the right edge
+  // and get clipped in the recorded video.
+  const VP_W = 1280, VP_H = 720;
+  const scaleX = VP_W / width;
+  const scaleY = VP_H / height;
+  const scale  = Math.min(scaleX, scaleY, 1); // never upscale, only shrink
+  if (scale < 1) {
+    svg.style.transform = `scale(${scale})`;
+    // Centre vertically when scaling down a wide scene
+    const scaledH = height * scale;
+    svg.style.marginTop = Math.max((VP_H - scaledH) / 2, 0) + 'px';
+  }
+
+  document.body.style.width  = VP_W + 'px';
+  document.body.style.height = VP_H + 'px';
+
+  // Resize the window (Playwright will already be sized; this is a hint for
+  // manual browser testing).
+  window.__animWidth  = width;
+  window.__animHeight = height;
+
+  const rc = rough.svg(svg);
+
+  // Build all SVG groups, hidden initially
+  const groups = elements.map(el => buildGroup(rc, svg, el, minX - PADDING, minY - PADDING));
+  const visibleGroups = groups.filter(g => g !== null);
+
+  // Resolve pause beats relative to visible group count
+  const pauseBeats = parsePauseBeats(visibleGroups.length);
+  console.log('[animator.html] visibleGroups count:', visibleGroups.length);
+  console.log('[animator.html] parsed pauseBeats:', JSON.stringify(pauseBeats));
+  // Map: afterIndex (0-based among visible groups) → holdMs
+  const pauseMap = new Map(pauseBeats.map(b => [b.afterIndex, b.holdMs]));
+
+  // Animate sequentially, inserting pauses at beat indices
+  let t = 200; // initial delay to let fonts load
+  let visibleIdx = 0;
+  for (const g of groups) {
+    if (!g) { t += STEP_GAP; continue; }
+    const currentT = t;
+    const currentIdx = visibleIdx;
+    setTimeout(() => {
+      console.log(`[animator.html] animating group ${currentIdx} at t=${currentT}ms`);
+      animateGroup(g);
+    }, t);
+    t += (g.dataset.kind === 'text' ? MS_PER_TEXT : MS_PER_SHAPE) + STEP_GAP;
+    // Insert hold AFTER this element finishes drawing
+    const holdMs = pauseMap.get(visibleIdx);
+    if (holdMs) {
+      console.log(`[animator.html] mapping pause: after group ${visibleIdx}, hold ${holdMs}ms`);
+      t += holdMs;
+    }
+    visibleIdx++;
+  }
+
+  // Signal completion for Playwright to know when to stop recording
+  setTimeout(() => {
+    window.__animationDone = true;
+    document.dispatchEvent(new Event('animationComplete'));
+  }, t + 300);
+})();
+
+// ─── Bounding box ────────────────────────────────────────────────────────────
+function boundingBox(elements, pad) {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const el of elements) {
+    x0 = Math.min(x0, el.x);
+    y0 = Math.min(y0, el.y);
+    x1 = Math.max(x1, el.x + (el.width  || 0));
+    y1 = Math.max(y1, el.y + (el.height || 0));
+  }
+  // fallback for empty / degenerate scenes
+  if (!isFinite(x0)) { x0 = 0; y0 = 0; x1 = 800; y1 = 400; }
+  return {
+    minX: x0, minY: y0,
+    width:  x1 - x0 + pad * 2,
+    height: y1 - y0 + pad * 2,
+  };
+}
+
+// ─── Element builders ────────────────────────────────────────────────────────
+function buildGroup(rc, svg, el, _offX, _offY) {
+  try {
+    switch (el.type) {
+      case 'rectangle': return buildRect(rc, svg, el);
+      case 'text':      return buildText(svg, el);
+      case 'arrow':     return buildArrow(rc, svg, el);
+      default:          return null;
+    }
+  } catch(e) {
+    console.warn('Failed to build element', el.id, e);
+    return null;
+  }
+}
+
+function roughOpts(el) {
+  return {
+    stroke:      el.strokeColor || '#1e1e1e',
+    fill:        el.backgroundColor && el.backgroundColor !== 'transparent'
+                   ? el.backgroundColor : undefined,
+    fillStyle:   'solid',
+    strokeWidth: el.strokeWidth || 2,
+    roughness:   el.roughness  != null ? el.roughness : 1,
+    seed:        el.seed || 42,
+  };
+}
+
+function buildRect(rc, svg, el) {
+  const g = rc.rectangle(el.x, el.y, el.width, el.height, roughOpts(el));
+  g.dataset.kind = 'shape';
+  hideGroup(g);
+  svg.appendChild(g);
+  return g;
+}
+
+function buildText(svg, el) {
+  if (!el.text || !el.text.trim()) return null;
+
+  const isLabel = !!el.containerId; // bound label inside a rect
+  const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  g.dataset.kind = 'text';
+
+  const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  t.setAttribute('x', el.x + (el.width || 0) / 2);
+  t.setAttribute('y', el.y + (el.height || 20) / 2);
+  t.setAttribute('text-anchor', 'middle');
+  t.setAttribute('dominant-baseline', 'central');
+  t.setAttribute('fill', el.strokeColor || '#1e1e1e');
+  t.setAttribute('font-family', "'Caveat', cursive");
+  t.setAttribute('font-size', el.fontSize || 18);
+  t.setAttribute('font-weight', isLabel ? '700' : '500');
+
+  // White background pill for edge labels (non-bound text)
+  if (!isLabel && el.backgroundColor && el.backgroundColor !== 'transparent') {
+    const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    const pad = 4;
+    bg.setAttribute('x',      el.x - pad);
+    bg.setAttribute('y',      el.y - pad);
+    bg.setAttribute('width',  (el.width  || 60) + pad * 2);
+    bg.setAttribute('height', (el.height || 20) + pad * 2);
+    bg.setAttribute('rx', 4);
+    bg.setAttribute('fill', el.backgroundColor);
+    g.appendChild(bg);
+  }
+
+  // Wrap long labels across two lines
+  const words = el.text.split(/\s+/);
+  if (words.length > 3 && !isLabel) {
+    const mid = Math.ceil(words.length / 2);
+    const line1 = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+    const line2 = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+    line1.textContent = words.slice(0, mid).join(' ');
+    line2.textContent = words.slice(mid).join(' ');
+    line1.setAttribute('x', t.getAttribute('x'));
+    line1.setAttribute('dy', '-0.6em');
+    line2.setAttribute('x', t.getAttribute('x'));
+    line2.setAttribute('dy', '1.2em');
+    t.appendChild(line1);
+    t.appendChild(line2);
+  } else {
+    t.textContent = el.text;
+  }
+
+  g.appendChild(t);
+  g.style.opacity = '0';
+  svg.appendChild(g);
+  return g;
+}
+
+function buildArrow(rc, svg, el) {
+  if (!el.points || el.points.length < 2) return null;
+
+  const pts = el.points.map(([dx, dy]) => [el.x + dx, el.y + dy]);
+  const opts = {
+    stroke:      el.strokeColor || '#495057',
+    strokeWidth: el.strokeWidth || 2,
+    roughness:   el.roughness  != null ? el.roughness : 1,
+    seed:        el.seed || 42,
+  };
+
+  const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  g.dataset.kind = 'shape';
+
+  // Shaft
+  const shaft = rc.linearPath(pts, opts);
+  g.appendChild(shaft);
+
+  // Arrowhead triangle at end point
+  if (el.endArrowhead === 'arrow') {
+    const tip = pts[pts.length - 1];
+    const prev = pts[pts.length - 2];
+    const head = arrowhead(tip, prev, opts.stroke, 14);
+    g.appendChild(head);
+  }
+
+  hideGroup(g);
+  svg.appendChild(g);
+  return g;
+}
+
+function arrowhead(tip, prev, color, size) {
+  const dx = tip[0] - prev[0];
+  const dy = tip[1] - prev[1];
+  const len = Math.sqrt(dx * dx + dy * dy) || 1;
+  const ux = dx / len, uy = dy / len;
+  const px = -uy, py = ux; // perpendicular
+
+  const p1 = [tip[0] - ux * size + px * (size / 2.5), tip[1] - uy * size + py * (size / 2.5)];
+  const p2 = [tip[0] - ux * size - px * (size / 2.5), tip[1] - uy * size - py * (size / 2.5)];
+
+  const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+  poly.setAttribute('points', `${tip[0]},${tip[1]} ${p1[0]},${p1[1]} ${p2[0]},${p2[1]}`);
+  poly.setAttribute('fill',   color);
+  poly.setAttribute('stroke', color);
+  return poly;
+}
+
+// ─── Animation ───────────────────────────────────────────────────────────────
+function hideGroup(g) {
+  // Hide all path strokes via dashoffset; fill set to none initially
+  for (const path of g.querySelectorAll('path')) {
+    path.style.fillOpacity = '0'; // fill reveals after stroke draws
+    try {
+      const len = path.getTotalLength();
+      path.style.strokeDasharray  = len;
+      path.style.strokeDashoffset = len;
+    } catch(_) {}
+  }
+  // polygon arrowhead
+  for (const poly of g.querySelectorAll('polygon')) {
+    poly.style.opacity = '0';
+  }
+}
+
+function animateGroup(g) {
+  if (g.dataset.kind === 'text') {
+    // Simple fade-in for text
+    g.style.transition = `opacity ${MS_PER_TEXT}ms ease`;
+    requestAnimationFrame(() => { g.style.opacity = '1'; });
+    return;
+  }
+
+  // Stroke-draw animation for shapes/arrows
+  const paths = [...g.querySelectorAll('path')];
+  const perPath = paths.length > 0 ? MS_PER_SHAPE / paths.length : MS_PER_SHAPE;
+
+  paths.forEach((path, i) => {
+    setTimeout(() => {
+      path.style.transition = `stroke-dashoffset ${perPath}ms linear`;
+      requestAnimationFrame(() => {
+        path.style.strokeDashoffset = '0';
+        // Reveal fill after stroke finishes
+        setTimeout(() => {
+          path.style.transition += ', fill-opacity 150ms ease';
+          path.style.fillOpacity = '1';
+        }, perPath);
+      });
+    }, i * (perPath * 0.6));
+  });
+
+  // Reveal arrowhead after shaft draws
+  for (const poly of g.querySelectorAll('polygon')) {
+    setTimeout(() => {
+      poly.style.transition = `opacity 100ms ease`;
+      poly.style.opacity = '1';
+    }, MS_PER_SHAPE * 0.8);
+  }
+}
+</script>
+</body>
+</html>

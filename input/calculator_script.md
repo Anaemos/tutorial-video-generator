@@ -1,5 +1,33 @@
 # Calculator Tutorial
 
+## Explainer
+pause_ms: 1800, 1800
+narration: "Before we dive into writing the Python code for our simple calculator, let's take a moment to understand the core concepts that make it work. We will be using functions, passing inputs as parameters, returning results, and applying mathematical operators. These components are the fundamental building blocks of our program. Let's trace how they connect in a logical flow: we take inputs, pass them into our function, apply the operator, and finally receive the computed output result."
+nodes:
+  - id: n1, label: "Inputs (a, b)", kind: input
+  - id: n2, label: "Function", kind: process
+  - id: n3, label: "Operator", kind: process
+  - id: n4, label: "Result", kind: output
+edges:
+  - from: n1, to: n2, label: "passed as"
+  - from: n2, to: n3, label: "applies"
+  - from: n3, to: n4, label: "returns"
+
+## Explainer
+pause_ms: 1500, 1500
+narration: "Now let's look at the error path. Division is the one operation where we need a safety check, because zero in the denominator can crash the program. The calculator first tries the division, then catches the error if it happens, and finally prints a friendly message instead of breaking. That extra branch is what makes the app feel polished and reliable."
+nodes:
+  - id: n1, label: "Inputs", kind: input
+  - id: n2, label: "divide(a, b)", kind: process
+  - id: n3, label: "Zero?", kind: decision
+  - id: n4, label: "Result", kind: output
+  - id: n5, label: "Error msg", kind: note
+edges:
+  - from: n1, to: n2, label: "call"
+  - from: n2, to: n3, label: "check"
+  - from: n3, to: n4, label: "no"
+  - from: n3, to: n5, label: "yes"
+
 ## Step 1
 narration: "Welcome to this Python calculator tutorial. Today we are going to build a fully functional calculator program from scratch using Python. By the end of this video, you will have a complete calculator that supports addition, subtraction, multiplication, and division. We will also handle edge cases like dividing by zero, and we will build an interactive loop so users can type in their own calculations. Let's get started by creating a new Python file called calculator dot py and adding a comment at the top to describe what it does."
 code: |

@@ -4,3 +4,5 @@ pydub
 pyautogui
 ffmpeg-python
 pytest
+requests
+playwright
