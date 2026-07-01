@@ -11,11 +11,15 @@ output/audio/*
 output/subtitles/*
 output/recordings/*
 output/final/*
+output/explainer/*
 output/*.json
 !output/audio/.gitkeep
 !output/subtitles/.gitkeep
 !output/recordings/.gitkeep
 !output/final/.gitkeep
+!output/explainer/.gitkeep
+
+input/calculator.py
 
 .DS_Store
 Thumbs.db

@@ -82,3 +82,37 @@ def type_code(code: str, delay_per_char: float = 0.05) -> None:
     # blank line separator before the next step's paste
     pyautogui.press("enter")
     time.sleep(0.2)
+
+
+def _paste_text(text: str) -> None:
+    pyperclip.copy(text)
+    pyautogui.hotkey("ctrl", "v")
+
+
+def execute_code_in_terminal(
+    filepath: str,
+    sample_inputs: list[str] | None = None,
+    settle_seconds: float = 2.5,
+) -> None:
+    """Run the current file inside VS Code's integrated terminal.
+
+    If sample_inputs is provided, they are typed one per line after the
+    process starts. This is especially useful for interactive scripts such
+    as the calculator tutorial, because it shows the terminal execution
+    instead of just launching a blocking prompt.
+    """
+    _focus_vscode_window()
+    pyautogui.hotkey("ctrl", "`")
+    time.sleep(1.2)
+
+    command = f'python "{os.path.abspath(filepath)}"'
+    _paste_text(command)
+    pyautogui.press("enter")
+    time.sleep(1.5)
+
+    for line in sample_inputs or []:
+        _paste_text(line)
+        pyautogui.press("enter")
+        time.sleep(1.0)
+
+    time.sleep(settle_seconds)
